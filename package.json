@@ -1,0 +1,21 @@
+{
+  "name": "news-skills",
+  "version": "1.0.0",
+  "description": "News skills project with skill-creator",
+  "private": true,
+  "scripts": {
+    "skill": "skill-creator",
+    "report": "node scripts/weekly-report.js",
+    "report:send": "node scripts/weekly-report.js --send",
+    "report:test-email": "node scripts/test-email.js",
+    "report:test-translate": "node scripts/test-translate.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "nodemailer": "^6.9.16",
+    "rss-parser": "^3.13.0"
+  },
+  "devDependencies": {
+    "skill-creator": "^1.5.0"
+  }
+}
