@@ -37,6 +37,15 @@ const SOURCE_WEIGHT = {
   'MIT Technology Review': 5,
 };
 
+/** 从配置解析收件人列表：支持逗号分隔，去空格去空 */
+function parseRecipients(value) {
+  if (!value || typeof value !== 'string') return [];
+  return value
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && s.includes('@'));
+}
+
 function dateRange() {
   const end = new Date();
   const start = new Date(end.getTime() - DAYS_AGO * MS_PER_DAY);
@@ -101,6 +110,32 @@ function dedupeByTitle(items) {
     if (!t || seen.has(t)) return false;
     seen.add(t);
     return true;
+  });
+}
+
+/**
+ * 仅保留与具身智能、AI、大模型、智能硬件等科技领域相关的条目，排除政治、体育等人文领域。
+ */
+const TOPIC_INCLUDE_KEYWORDS = [
+  'AI', 'artificial intelligence', 'LLM', 'large language model', 'GPT', 'ChatGPT', 'OpenAI', 'robot', 'robotics', 'embodied',
+  'smart hardware', 'wearable', 'IoT', 'machine learning', 'neural', 'deep learning', 'chip', 'semiconductor', 'GPU', 'NVIDIA',
+  'autonomous', 'self-driving', 'AGI', 'computer vision', 'NLP', 'transformer', 'model training', 'inference',
+  '智能', '大模型', '人工智能', '机器人', '具身', '芯片', '算力',
+];
+const TOPIC_EXCLUDE_KEYWORDS = [
+  'election', 'elections', 'vote', 'voting', 'president', 'political', 'politics', 'congress', 'senate', 'republican', 'democrat',
+  'sport', 'sports', 'football', 'basketball', 'soccer', 'olympic', 'NBA', 'NFL', 'game score', 'championship',
+  '政治', '选举', '体育', '赛事', '球队', '球员',
+];
+
+function filterByTopic(items) {
+  const include = TOPIC_INCLUDE_KEYWORDS.map((k) => k.toLowerCase());
+  const exclude = TOPIC_EXCLUDE_KEYWORDS.map((k) => k.toLowerCase());
+  return items.filter((item) => {
+    const text = ((item.title || '') + ' ' + (item.snippet || '')).toLowerCase();
+    const hasInclude = include.some((k) => text.includes(k));
+    const hasExclude = exclude.some((k) => text.includes(k));
+    return hasInclude && !hasExclude;
   });
 }
 
@@ -245,7 +280,7 @@ function buildHtml(items, startDate, endDate, reportDate) {
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>科技领域一周热点报告 ${formatDate(reportDate)}</title>
+  <title>具身智能与AI科技周报 ${formatDate(reportDate)}</title>
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; max-width: 900px; margin: 0 auto; padding: 1.5rem; line-height: 1.6; color: #333; }
     h1 { font-size: 1.75rem; border-bottom: 2px solid #2563eb; padding-bottom: 0.5rem; }
@@ -259,12 +294,12 @@ function buildHtml(items, startDate, endDate, reportDate) {
   </style>
 </head>
 <body>
-  <h1>科技领域一周热点报告</h1>
-  <p class="meta">时间范围：${formatDate(startDate)} 至 ${formatDate(endDate)} · 生成时间：${formatDate(reportDate)} · 从过去一周新闻中合并去重后选取 ${items.length} 条最具影响力/代表性</p>
+  <h1>具身智能与 AI 科技周报</h1>
+  <p class="meta">时间范围：${formatDate(startDate)} 至 ${formatDate(endDate)} · 生成时间：${formatDate(reportDate)} · 聚焦具身智能、AI、大模型、智能硬件等，排除政治/体育等人文领域；选取 ${items.length} 条最具影响力/代表性</p>
   <ul>
 ${listHtml}
   </ul>
-  <footer>本报告由 weekly-report 定时任务生成，数据来自 RSS：TechCrunch、The Verge、Ars Technica、Wired、MIT Technology Review；合并去重后仅展示 ${items.length} 条最具影响力或代表性的科技新闻。</footer>
+  <footer>本报告由 weekly-report 生成，数据来自 TechCrunch、The Verge、Ars Technica、Wired、MIT Technology Review；仅收录具身智能、AI、大模型、智能硬件等相关科技新闻，不包含政治、体育等人文内容。</footer>
 </body>
 </html>`;
 }
@@ -289,8 +324,9 @@ async function run() {
   const filtered = filterLastWeek(allItems, start);
   const sorted = sortByDate(filtered);
   const merged = dedupeByTitle(dedupeByLink(sorted));
-  const topItems = selectTopInfluential(merged, TOP_N);
-  console.log(`过去 7 天共 ${sorted.length} 条，合并去重后 ${merged.length} 条，选取 ${TOP_N} 条最具影响力/代表性。`);
+  const topicFiltered = filterByTopic(merged);
+  const topItems = selectTopInfluential(topicFiltered, TOP_N);
+  console.log(`过去 7 天共 ${sorted.length} 条，合并去重后 ${merged.length} 条，主题过滤（具身智能/AI/大模型/智能硬件）后 ${topicFiltered.length} 条，选取 ${TOP_N} 条最具影响力/代表性。`);
 
   const appid = (process.env.BAIDU_TRANSLATE_APPID || '').trim();
   const key = (process.env.BAIDU_TRANSLATE_KEY || '').trim();
@@ -318,15 +354,15 @@ async function run() {
 
   if (sendEmail) {
     require('dotenv').config({ path: path.join(ROOT, '.env') });
-    const to = process.env.REPORT_EMAIL_TO;
+    const toList = parseRecipients(process.env.REPORT_EMAIL_TO);
     const host = process.env.SMTP_HOST;
     const portNum = Number(process.env.SMTP_PORT) || 587;
     const user = process.env.SMTP_USER;
     const pass = process.env.SMTP_PASS;
     const from = process.env.SMTP_FROM || user;
 
-    if (!to || !host || !user || !pass) {
-      console.error('发送邮件需要配置 .env：REPORT_EMAIL_TO, SMTP_HOST, SMTP_USER, SMTP_PASS');
+    if (!toList.length || !host || !user || !pass) {
+      console.error('发送邮件需要配置 .env：REPORT_EMAIL_TO（可填多个收件人，逗号分隔）, SMTP_HOST, SMTP_USER, SMTP_PASS');
       process.exit(1);
     }
 
@@ -341,12 +377,12 @@ async function run() {
 
     await transporter.sendMail({
       from: from,
-      to: to,
-      subject: `科技领域一周热点报告 ${formatDate(reportDate)}`,
+      to: toList,
+      subject: `具身智能与AI科技周报 ${formatDate(reportDate)}`,
       html: html,
       attachments: [{ filename, content: html }],
     });
-    console.log(`已发送邮件至: ${to}`);
+    console.log(`已发送邮件至: ${toList.join(', ')}`);
   }
 }
 

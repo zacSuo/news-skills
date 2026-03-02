@@ -8,15 +8,23 @@
 const path = require('path');
 require('dotenv').config({ path: path.resolve(__dirname, '..', '.env') });
 
-const to = process.env.REPORT_EMAIL_TO;
+function parseRecipients(value) {
+  if (!value || typeof value !== 'string') return [];
+  return value
+    .split(/[,;\s]+/)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0 && s.includes('@'));
+}
+
+const toList = parseRecipients(process.env.REPORT_EMAIL_TO);
 const host = process.env.SMTP_HOST;
 const port = Number(process.env.SMTP_PORT) || 587;
 const user = process.env.SMTP_USER;
 const pass = process.env.SMTP_PASS;
 const from = process.env.SMTP_FROM || user;
 
-if (!to || !host || !user || !pass) {
-  console.error('请先配置 .env：REPORT_EMAIL_TO, SMTP_HOST, SMTP_USER, SMTP_PASS');
+if (!toList.length || !host || !user || !pass) {
+  console.error('请先配置 .env：REPORT_EMAIL_TO（可填多个收件人，逗号分隔）, SMTP_HOST, SMTP_USER, SMTP_PASS');
   process.exit(1);
 }
 
@@ -37,7 +45,7 @@ async function main() {
   console.log('正在使用当前 .env 配置测试发信...');
   console.log(`  SMTP: ${host}:${port} (secure: ${isSecure})`);
   console.log(`  发件: ${from}`);
-  console.log(`  收件: ${to}`);
+  console.log(`  收件: ${toList.join(', ')}`);
   try {
     await transporter.verify();
     console.log('  SMTP 连接验证成功。');
@@ -76,7 +84,7 @@ async function main() {
   try {
     const info = await transporter.sendMail({
       from,
-      to,
+      to: toList,
       subject: '【测试】科技周报发信正常',
       text: '这是一封测试邮件。若你收到此邮件，说明当前 SMTP 配置可以正常发送科技周报。',
       html: '<p>这是一封<strong>测试邮件</strong>。</p><p>若你收到此邮件，说明当前 SMTP 配置可以正常发送科技周报。</p>',

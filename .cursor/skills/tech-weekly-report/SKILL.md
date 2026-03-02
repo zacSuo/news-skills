@@ -1,11 +1,11 @@
 ---
 name: tech-weekly-report
-description: Scans authoritative media and social platforms for tech hot topics from the past week and generates a linked HTML report. Use when the user asks for tech news roundup, weekly tech report, hotspot summary, 科技热点, or 一周科技要闻 with links.
+description: Scans authoritative media for embodied AI, AI, LLM, smart hardware and related tech from the past week and generates a linked HTML report. Excludes politics, sports and other non-tech topics. Use when the user asks for 具身智能, AI 周报, 大模型, 智能硬件, or 一周科技要闻 with links.
 ---
 
-# 科技领域一周热点报告
+# 具身智能与 AI 科技周报
 
-生成一份**过去一周**内、**科技领域**的热点事件报告，输出为**带链接的 HTML 网页**。报告需基于国内外权威媒体与社交平台的信息。
+生成一份**过去一周**内、**具身智能、AI、大模型、智能硬件等科技领域**的热点事件报告，输出为**带链接的 HTML 网页**。**仅关注上述科技方向，不包含政治、体育等人文领域**。报告需基于国内外权威媒体与社交平台的信息。
 
 ## 工作流程
 
@@ -19,9 +19,9 @@ description: Scans authoritative media and social platforms for tech hot topics 
 - **国际媒体**：TechCrunch、The Verge、Reuters Technology、Wired、Ars Technica、MIT Technology Review 等。
 - **国内媒体**：财新科技、36氪、虎嗅、机器之心、雷锋网、新浪科技、网易科技等。
 - **社交/社区**：Hacker News、Twitter/X 科技话题、知乎热榜（科技类）、微博科技热搜等。
-- **焦点领域**：AI/大模型、芯片与半导体、云计算与安全、新能源与自动驾驶、巨头动态、监管与政策等。
+- **仅收录方向**：具身智能、AI/大模型、智能硬件、机器人、芯片与算力、自动驾驶、机器学习、计算机视觉等；**排除**政治、体育、娱乐等人文领域。
 
-使用 **Web 搜索** 查询如「过去一周 科技 热点」「tech news this week」「AI news week」等，并优先采用权威来源的标题与链接。
+使用 **Web 搜索** 查询如「过去一周 具身智能 AI」「embodied AI news」「LLM robotics this week」等，并优先采用权威来源的标题与链接；遇到明显政治、体育类条目不纳入报告。
 
 ## 输出要求
 
